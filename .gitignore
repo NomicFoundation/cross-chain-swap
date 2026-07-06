@@ -22,3 +22,6 @@ zkout
 
 # Hardhat
 dynamic-imports
+
+# Hardhat Ignition: local deployment state
+ignition/deployments
