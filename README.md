@@ -27,7 +27,7 @@ Production addresses per network are listed in [deployments.md](deployments.md).
 | ---------------- | ----------------------------------------------- |
 | `contracts/`     | Smart contracts                                 |
 | `test/`          | Foundry tests                                   |
-| `deploy/`        | Deployment forge scripts, `deploy.sh`, `config.json` |
+| `deploy/`        | Deployment scripts — Hardhat Ignition for EVM chains, forge for zkSync — and `config.json` |
 | `foundry-deployers/` | Deployer shims for the Foundry-driven flows  |
 | `docs/`          | Protocol documentation and the whitepaper       |
 | `audits/`        | Audit reports                                   |
@@ -37,7 +37,7 @@ Production addresses per network are listed in [deployments.md](deployments.md).
 
 ## Local development
 
-This project uses [Hardhat](https://hardhat.org) as the primary toolchain: compiling contracts, running the Solidity test suite, coverage, and the gas snapshot. [Foundry](https://github.com/foundry-rs/foundry) is still used for the deployment scripts in `deploy/`, the interaction scripts in `examples/`, and the zkSync build/test flow.
+This project uses [Hardhat](https://hardhat.org) as the primary toolchain: compiling contracts, running the Solidity test suite, coverage, and the gas snapshot. EVM deployments run through Hardhat Ignition (`yarn deploy`). [Foundry](https://github.com/foundry-rs/foundry) is still used for the zkSync deployment script, the interaction scripts in `examples/`, and the zkSync build/test flow.
 
 ### Prerequisites
 
@@ -49,7 +49,7 @@ This project uses [Hardhat](https://hardhat.org) as the primary toolchain: compi
 
   Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`. `postinstall` applies a `patch-package` patch that lets Hardhat import the `@1inch/solidity-utils` contracts.
 
-- For the deploy, examples, lite and zkSync flows, [install Foundry](https://book.getfoundry.sh/getting-started/installation) (requires [Rust](https://www.rust-lang.org/tools/install)):
+- For the examples, lite and zkSync flows (including the zkSync deploy), [install Foundry](https://book.getfoundry.sh/getting-started/installation) (requires [Rust](https://www.rust-lang.org/tools/install)):
 
   ``` shell
   # Install Foundryup:
@@ -74,7 +74,7 @@ To compile contracts run:
 yarn build
 ```
 
-To check the Foundry build that deployments use:
+To check the Foundry build that the examples and the zkSync flows use:
 
 ``` shell
 yarn deployers:foundry && forge build
@@ -109,7 +109,7 @@ CI checks each side separately:
 | `test` | `yarn test` | any test fails, fuzz tests included |
 | `snapshot` | `yarn snapshot:check` | `.gas-snapshot` no longer matches what the code costs |
 | `lint` | `yarn lint` | solhint reports anything, at `--max-warnings 0` |
-| `forge-build` | `forge build` | the Foundry build used for deployments breaks |
+| `forge-build` | `forge build` | the Foundry build used by the examples and zkSync flows breaks |
 
 Running only `yarn snapshot` locally leaves a broken fuzz test to be found by the `test` job. Running only `yarn test` leaves `.gas-snapshot` stale, which the `snapshot` job rejects even though every test passes.
 
