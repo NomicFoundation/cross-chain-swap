@@ -1,5 +1,5 @@
 diff --git a/node_modules/@1inch/solidity-utils/package.json b/node_modules/@1inch/solidity-utils/package.json
-index 6e2699e..684cb62 100644
+index f68e320..ff97922 100644
 --- a/node_modules/@1inch/solidity-utils/package.json
 +++ b/node_modules/@1inch/solidity-utils/package.json
 @@ -6,7 +6,8 @@
