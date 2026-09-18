@@ -8,18 +8,23 @@ Guidance for coding agents working in this repository.
 
 ## Toolchain
 
-This project uses Foundry (`foundry.toml`), with solc pinned to 0.8.23 and the Foundry release pinned to `v1.5.1` in `.github/workflows/test.yml`. `foundry.lock` records submodule revisions only.
+This project uses Hardhat 3 (`hardhat.config.ts`) as the primary toolchain — compile, Solidity tests, coverage, and the gas snapshot — with solc pinned to 0.8.23. Foundry (`foundry.toml`, release pinned to `v1.5.1` in `.github/workflows/test.yml`) still drives the deployment scripts, the `examples/` interaction scripts, the `lite` profile, and the zkSync flow.
+
+Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`: the 1inch packages and forge-std are git dependencies pinned to the same SHAs the old `lib/` submodules used, and `@openzeppelin/contracts` is pinned to 5.3.0, whose production import closure matches the old pin. The production build inputs are therefore unchanged from the submodule era — runtime bytecode of `EscrowFactory`, `EscrowSrc` and `EscrowDst` is byte-identical apart from the metadata trailer. Do not loosen these pins to registry ranges without re-checking that equivalence.
+
+Every `forge` invocation (build, test, script) first needs the gitignored `dynamic-imports/` deployer shims populated with `yarn deployers:foundry`; the wrapped yarn scripts run it themselves.
 
 ### Build and test
 
 ```bash
-yarn          # installs dependencies; postinstall runs forge install for the submodules
-forge build
-forge test    # the full suite, and what CI runs
-yarn lint     # solhint with --max-warnings 0
+yarn            # installs dependencies; postinstall applies patch-package
+yarn build      # hardhat compile
+yarn test       # the full suite under Hardhat, fuzz included, and what CI runs
+yarn lint       # solhint with --max-warnings 0
+yarn deployers:foundry && forge build   # the stock-Foundry build deployments use
 ```
 
-`yarn test` is not `forge test`. It runs `forge snapshot --no-match-test "testFuzz_*"`, which rewrites `.gas-snapshot` and skips the fuzz tests. Run `forge test` before pushing: CI runs the full suite including `testFuzz_*`, plus `forge snapshot --check`, so a stale snapshot or a failing fuzz test surfaces there rather than locally.
+`yarn snapshot` is not `yarn test`. It runs `hardhat test solidity --snapshot --grep-exclude testFuzz`, which rewrites `.gas-snapshot` and skips the fuzz tests. Run `yarn test` before pushing: CI runs the full suite including `testFuzz_*`, plus `yarn snapshot:check` and a stock-Foundry `forge build`, so a stale snapshot, a failing fuzz test, or a broken Foundry build surfaces there rather than locally.
 
 Prefer the repository's own `package.json` scripts over inventing parallel commands. `yarn run` lists them.
 
@@ -31,13 +36,13 @@ Prefer the repository's own `package.json` scripts over inventing parallel comma
 | `contracts/`   | Smart contracts                                       |
 | `test/`        | Foundry tests                                         |
 | `deploy/`      | Deployment forge scripts, `deploy.sh`, and `config.json` |
-| `scripts/`     | Shell helpers (coverage)                              |
 | `docs/`        | Protocol documentation, whitepaper, diagrams          |
 | `audits/`      | Audit reports                                         |
 | `deployments/` | Per-network deployment artifacts                      |
 | `examples/`    | Example configs, demos, and interaction forge scripts |
+| `foundry-deployers/` | Foundry-side deployer shims, copied into `dynamic-imports/` by `yarn deployers:foundry` |
 | `hooks/`       | Git pre-commit hooks                                  |
-| `lib/`         | Git submodule dependencies                            |
+| `patches/`     | `patch-package` patches applied on postinstall        |
 
 
 Protocol documentation lives in `docs/protocol.md`; `README.md` covers what the repository is and how to build and test it. `yarn doc` runs `forge doc` into `documentation/`, which is gitignored — never commit generated HTML, and do not confuse that directory with `docs/`.
@@ -67,7 +72,7 @@ Protocol documentation lives in `docs/protocol.md`; `README.md` covers what the 
 
 ### Compiler settings are load-bearing
 
-`foundry.toml` sets `via-ir = true`, `optimizer_runs = 1000000` and `evm_version = 'shanghai'`. The live factories are verified on block explorers with exactly these settings, so changing any of them breaks the match between the sources here and the deployed bytecode. Treat them as frozen.
+`foundry.toml` sets `via-ir = true`, `optimizer_runs = 1000000` and `evm_version = 'shanghai'`, and `hardhat.config.ts` mirrors the same settings — keep the two in sync. The live factories are verified on block explorers with exactly these settings, so changing any of them breaks the match between the sources here and the deployed bytecode. Treat them as frozen. The dependency pins described under Toolchain are part of the same guarantee.
 
 ### Deployment records
 
@@ -104,9 +109,9 @@ Two consequences worth knowing before spending time on them:
 
 ### Layout exception: `examples/`
 
-Scripts under `examples/` are **example / demo scripts**, not repository tooling. They belong in `examples/` and must **not** be moved into `scripts/`. `scripts/` is only for non-demo helpers such as coverage.
+Scripts under `examples/` are **example / demo scripts**, not repository tooling, and belong in `examples/`.
 
-`examples/onchain/` holds interaction forge scripts (create order, deploy escrow, withdraw, cancel) and `examples/scripts/` a shell driver. They are documented in `examples/README.md`, and moving them breaks the `fs_permissions` entry in `foundry.toml`. Their presence outside `scripts/` is intentional — not a layout error, and not something a repository-organization review should flag.
+`examples/onchain/` holds interaction forge scripts (create order, deploy escrow, withdraw, cancel) and `examples/scripts/` a shell driver. They are documented in `examples/README.md`, and moving them breaks the `fs_permissions` entry in `foundry.toml`. Their location is intentional — not a layout error, and not something a repository-organization review should flag.
 
 ### Secrets
 

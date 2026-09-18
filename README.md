@@ -28,7 +28,7 @@ Production addresses per network are listed in [deployments.md](deployments.md).
 | `contracts/`     | Smart contracts                                 |
 | `test/`          | Foundry tests                                   |
 | `deploy/`        | Deployment forge scripts, `deploy.sh`, `config.json` |
-| `scripts/`       | Shell helpers (coverage)                        |
+| `foundry-deployers/` | Deployer shims for the Foundry-driven flows  |
 | `docs/`          | Protocol documentation and the whitepaper       |
 | `audits/`        | Audit reports                                   |
 | `deployments/`   | Per-network deployment artifacts                |
