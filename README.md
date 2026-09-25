@@ -27,8 +27,8 @@ Production addresses per network are listed in [deployments.md](deployments.md).
 | ---------------- | ----------------------------------------------- |
 | `contracts/`     | Smart contracts                                 |
 | `test/`          | Foundry tests                                   |
-| `deploy/`        | Deployment forge scripts, `deploy.sh`, `config.json` |
-| `scripts/`       | Shell helpers (coverage)                        |
+| `deploy/`        | Deployment scripts — Hardhat Ignition for EVM chains, forge for zkSync — and `config.json` |
+| `foundry-deployers/` | Deployer shims for the Foundry-driven flows  |
 | `docs/`          | Protocol documentation and the whitepaper       |
 | `audits/`        | Audit reports                                   |
 | `deployments/`   | Per-network deployment artifacts                |
@@ -36,53 +36,68 @@ Production addresses per network are listed in [deployments.md](deployments.md).
 | `hooks/`         | Git pre-commit hooks                            |
 
 ## Local development
-This project uses [Foundry](https://github.com/foundry-rs/foundry) for smart contract development in Solidity. Foundry is a fast, portable, and modular toolkit designed to compile, test, and deploy Solidity contracts.
+
+This project uses [Hardhat](https://hardhat.org) as the primary toolchain: compiling contracts, running the Solidity test suite, coverage, and the gas snapshot. EVM deployments run through Hardhat Ignition (`yarn deploy`). [Foundry](https://github.com/foundry-rs/foundry) is still used for the zkSync deployment script, the interaction scripts in `examples/`, and the zkSync build/test flow.
 
 ### Prerequisites
-- Ensure you have [Rust](https://www.rust-lang.org/tools/install) installed.
-- To [install Foundry](https://book.getfoundry.sh/getting-started/installation), including the `forge` tool, follow these steps:
 
-``` shell
-# Install Foundryup:
-curl -L https://foundry.paradigm.xyz | bash
+- Ensure you have [Node.js](https://nodejs.org) (v22+) and [Yarn](https://yarnpkg.com) installed, then install dependencies:
 
-# Apply updated config to current terminal session
-source ~/.zshenv
+  ``` shell
+  yarn install
+  ```
 
-# Install forge, cast, anvil, and chisel
-foundryup
-```
+  Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`. `postinstall` applies a `patch-package` patch that lets Hardhat import the `@1inch/solidity-utils` contracts.
 
-CI pins Foundry to `v1.5.1`. `foundryup` with no arguments installs the current stable release instead, which is usually fine — but if a CI result will not reproduce locally, match the pin with `foundryup --install v1.5.1`.
+- For the examples, lite and zkSync flows (including the zkSync deploy), [install Foundry](https://book.getfoundry.sh/getting-started/installation) (requires [Rust](https://www.rust-lang.org/tools/install)):
+
+  ``` shell
+  # Install Foundryup:
+  curl -L https://foundry.paradigm.xyz | bash
+
+  # Apply updated config to current terminal session
+  source ~/.zshenv
+
+  # Install forge, cast, anvil, and chisel
+  foundryup
+  ```
+
+  CI pins Foundry to `v1.5.1`. `foundryup` with no arguments installs the current stable release instead, which is usually fine — but if a CI result will not reproduce locally, match the pin with `foundryup --install v1.5.1`.
+
+  Every `forge` command needs the generated deployer shims in `dynamic-imports/` to exist first. The wrapped yarn scripts populate them for you; if you invoke `forge` directly, run `yarn deployers:foundry` once beforehand.
 
 ### Build
-To install dependencies and compile contracts run:
+
+To compile contracts run:
 
 ``` shell
-yarn         # node dependencies; postinstall runs `forge install` for the submodules
-forge build
+yarn build
 ```
 
-`yarn` is needed before any of the `yarn ...` commands below, since solhint is a node dependency.
+To check the Foundry build that the examples and the zkSync flows use:
+
+``` shell
+yarn deployers:foundry && forge build
+```
 
 ### Test
 
 There are two test commands and they do different things. **Run both before committing** — neither one covers what the other checks, and CI runs both.
 
 ``` shell
-forge test   # the full suite, fuzz tests included
-yarn test    # refreshes .gas-snapshot, skips the fuzz tests
+yarn test       # the full suite, fuzz tests included
+yarn snapshot   # refreshes .gas-snapshot, skips the fuzz tests
 ```
 
-#### `forge test` — verifies the change
+#### `yarn test` — verifies the change
 
-Runs every test in `test/`, including the `testFuzz_*` tests, and writes nothing to the working tree. This is the command that tells you whether your change is correct.
+Runs every test in `test/` under Hardhat, including the `testFuzz_*` tests, and writes nothing to the working tree. This is the command that tells you whether your change is correct.
 
-#### `yarn test` — refreshes the gas snapshot
+#### `yarn snapshot` — refreshes the gas snapshot
 
-Not an alias for the above. The script is `FOUNDRY_PROFILE=default forge snapshot --no-match-test "testFuzz_*"`, which differs in two ways that matter:
+Not an alias for the above. The script is `hardhat test solidity --snapshot --grep-exclude testFuzz`, which differs in two ways that matter:
 
-- **It skips every fuzz test.** `--no-match-test "testFuzz_*"` excludes them, because a fuzz run explores different inputs each time and so produces a different gas figure each time — there is nothing stable to record. A fuzz test that your change broke will pass here by never running.
+- **It skips every fuzz test.** `--grep-exclude testFuzz` excludes them, because a fuzz run explores different inputs each time and so produces a different gas figure each time — there is nothing stable to record. A fuzz test that your change broke will pass here by never running.
 - **It writes to a tracked file.** The gas cost of each remaining test is written to `.gas-snapshot`, which is committed to the repository. Running the command modifies your working tree, and if the diff is non-empty it belongs in your commit.
 
 #### Why both
@@ -90,22 +105,23 @@ Not an alias for the above. The script is `FOUNDRY_PROFILE=default forge snapsho
 CI checks each side separately:
 
 | CI job | Command | Fails when |
-| ---------- | ------------------------------------------------------------ | ------------------------------------------------------ |
-| `test` | `forge test -vvv --gas-report` | any test fails, fuzz tests included |
-| `snapshot` | `forge snapshot --check --no-match-test "testFuzz_*"` | `.gas-snapshot` no longer matches what the code costs |
+| ------------- | --------------------- | ------------------------------------------------------ |
+| `test` | `yarn test` | any test fails, fuzz tests included |
+| `snapshot` | `yarn snapshot:check` | `.gas-snapshot` no longer matches what the code costs |
 | `lint` | `yarn lint` | solhint reports anything, at `--max-warnings 0` |
+| `forge-build` | `forge build` | the Foundry build used by the examples and zkSync flows breaks |
 
-Running only `yarn test` locally leaves a broken fuzz test to be found by the `test` job. Running only `forge test` leaves `.gas-snapshot` stale, which the `snapshot` job rejects even though every test passes.
+Running only `yarn snapshot` locally leaves a broken fuzz test to be found by the `test` job. Running only `yarn test` leaves `.gas-snapshot` stale, which the `snapshot` job rejects even though every test passes.
 
-The [pre-commit hook](#how-to-setup-pre-commit-hooks) covers part of this — it runs `yarn lint` and the same `forge snapshot --check`, and refuses the commit if the snapshot is stale. It does not run the test suite at all, so the fuzz tests remain yours to run. So, before committing:
+The [pre-commit hook](#how-to-setup-pre-commit-hooks) covers part of this — it runs `yarn lint` and the same snapshot check, and refuses the commit if the snapshot is stale. It does not run the test suite at all, so the fuzz tests remain yours to run. So, before committing:
 
 ``` shell
-forge test   # must pass
-yarn test    # then commit the .gas-snapshot diff, if there is one
-yarn lint    # solhint, --max-warnings 0
+yarn test       # must pass
+yarn snapshot   # then commit the .gas-snapshot diff, if there is one
+yarn lint       # solhint, --max-warnings 0
 ```
 
-Two more profiles exist for narrower cases: `yarn test:lite` runs the suite with optimizer steps disabled for faster iteration, and `yarn test:zksync` runs it under the zkSync profile, which needs the zkSync fork of Foundry.
+Two more suites exist for narrower cases: `yarn test:lite` runs the tests under Foundry with optimizer steps disabled for faster iteration, and `yarn test:zksync` runs them under the zkSync profile, which needs the zkSync fork of Foundry.
 
 ## How to setup pre-commit hooks
 Run the following commands in your terminal:

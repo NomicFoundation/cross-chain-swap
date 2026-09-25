@@ -4,6 +4,7 @@ node_modules
 coverage
 coverage.json
 build
+dist
 .coverage_contracts
 .coverage_artifacts
 .idea
@@ -18,3 +19,9 @@ documentation
 
 # zkSync
 zkout
+
+# Hardhat
+dynamic-imports
+
+# Hardhat Ignition: local deployment state
+ignition/deployments
