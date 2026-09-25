@@ -8,8 +8,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
@@ -19,8 +19,8 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
@@ -31,8 +31,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
@@ -40,16 +40,34 @@ jobs:
       - name: Run tests
         run: yarn test
 
+  forge-build:
+    # Deployments, the examples and the lite profile still run through stock
+    # Foundry; this job guards that build against remapping or shim breakage.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'yarn'
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+      - run: yarn install --frozen-lockfile
+      - name: Build with Foundry
+        run: yarn deployers:foundry && forge build
+
   test-zksync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: matter-labs/foundry-zksync
           ref: 'main'
@@ -62,14 +80,14 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
       - name: Run coverage
         run: yarn coverage
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -10,12 +10,12 @@ dist
 .idea
 .env*
 .DS_Store
-Makefile
 
 # foundry
 cache_forge
 out
 broadcast
+documentation
 
 # zkSync
 zkout

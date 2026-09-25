@@ -34,21 +34,22 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    "clean": "hardhat clean && rimraf coverage",
     "build": "hardhat compile",
-    "typecheck": "tsc --noEmit",
+    "build:zksync": "yarn deployers:foundry && FOUNDRY_PROFILE=zksync forge build --zksync -vvvvv --zk-compile=true --build-info --via-ir",
+    "clean": "hardhat clean && rimraf coverage",
     "coverage": "hardhat test solidity --coverage",
     "coverage:zksync": "yarn deployers:foundry && mkdir -p coverage && FOUNDRY_PROFILE=zksync forge coverage --zksync --report lcov --ir-minimum --report-file coverage/lcov.info",
-    "deploy": "./scripts/deploy.sh",
+    "deploy": "yarn deployers:foundry && ./deploy/deploy.sh",
     "deployers:foundry": "mkdir -p dynamic-imports && cp -R foundry-deployers/. dynamic-imports/",
     "doc": "forge doc --build --out documentation",
-    "gasreport": "FOUNDRY_PROFILE=default forge test -vvv --gas-report",
-    "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" \"test/**/*.sol\" \"script/**/*.sol\" \"examples/**/*.sol\"",
+    "gasreport": "yarn deployers:foundry && FOUNDRY_PROFILE=default forge test -vvv --gas-report",
+    "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" \"test/**/*.sol\" \"deploy/**/*.sol\" \"examples/**/*.sol\"",
     "lint:fix": "solhint --max-warnings 0 \"contracts/**/*.sol\" \"test/**/*.sol\" --fix",
-    "test": "hardhat test solidity",
     "snapshot": "hardhat test solidity --snapshot --grep-exclude testFuzz",
     "snapshot:check": "hardhat test solidity --snapshot-check --grep-exclude testFuzz",
-    "test:lite": "FOUNDRY_PROFILE=lite forge test -vvv",
-    "test:zksync": "yarn deployers:foundry && FOUNDRY_PROFILE=zksync forge test -vvv --zksync --force"
+    "test": "hardhat test solidity",
+    "test:lite": "yarn deployers:foundry && FOUNDRY_PROFILE=lite forge test -vvv",
+    "test:zksync": "yarn deployers:foundry && FOUNDRY_PROFILE=zksync forge test -vvv --zksync --force",
+    "typecheck": "tsc --noEmit"
   }
 }
