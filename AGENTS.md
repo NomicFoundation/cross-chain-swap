@@ -12,7 +12,7 @@ This project uses Hardhat 3 (`hardhat.config.ts`) as the primary toolchain — c
 
 Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`: the 1inch packages and forge-std are git dependencies pinned to the same SHAs the old `lib/` submodules used, and `@openzeppelin/contracts` is pinned to 5.3.0, whose production import closure matches the old pin. The production build inputs are therefore unchanged from the submodule era — runtime bytecode of `EscrowFactory`, `EscrowSrc` and `EscrowDst` is byte-identical apart from the metadata trailer. Do not loosen these pins to registry ranges without re-checking that equivalence.
 
-Every `forge` invocation (build, test, script) first needs the gitignored `dynamic-imports/` deployer shims populated with `yarn deployers:foundry`; the wrapped yarn scripts run it themselves.
+Every `forge` invocation (build, test, script) first needs the gitignored `dynamic-imports/` deployer shims populated with `yarn deployers:foundry`; the wrapped yarn scripts run it themselves. Any Hardhat command that compiles rewrites that directory with Hardhat's own shims, so re-run it before invoking `forge` directly again.
 
 ### Build and test
 
@@ -115,4 +115,4 @@ Scripts under `examples/` are **example / demo scripts**, not repository tooling
 
 ### Secrets
 
-Deployment and demo runs read private keys and RPC URLs from `.env`, which is gitignored. `examples/config/config.json` is checked in and must stay free of keys — the `deployer` and `maker` values in it are the well-known public Anvil test accounts.
+The Hardhat deploy path reads `MAINNET_RPC_URL`, `DEPLOYER_PRIVATE_KEY` and `ETHERSCAN_API_KEY` as Hardhat configuration variables: an environment variable of the same name wins when set, otherwise the value comes from the encrypted keystore of the `hardhat-keystore` plugin (`npx hardhat keystore set <NAME>`; the password is prompted when the value is used). Hardhat does not read `.env`. The zkSync deploy script and the demo runs under `examples/` still read private keys and RPC URLs from `.env`, which is gitignored. `examples/config/config.json` is checked in and must stay free of keys — the `deployer` and `maker` values in it are the well-known public Anvil test accounts.

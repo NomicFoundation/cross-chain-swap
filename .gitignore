@@ -24,4 +24,4 @@ zkout
 dynamic-imports
 
 # Hardhat Ignition: local deployment state
-ignition/deployments
+ignition/deployments/chain-31337

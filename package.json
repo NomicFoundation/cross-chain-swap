@@ -18,6 +18,7 @@
     "@ignored/imports-plugin": "0.0.1",
     "@nomicfoundation/hardhat-ignition": "^3.1.8",
     "@nomicfoundation/hardhat-ignition-viem": "^3.1.6",
+    "@nomicfoundation/hardhat-keystore": "^3.1.1",
     "@nomicfoundation/hardhat-verify": "^3.0.11",
     "@nomicfoundation/hardhat-viem": "^3.0.9",
     "@types/node": "^26.1.0",

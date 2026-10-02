@@ -2,6 +2,7 @@ import { configVariable, defineConfig } from "hardhat/config";
 import hardhatViem from "@nomicfoundation/hardhat-viem";
 import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatVerify from "@nomicfoundation/hardhat-verify";
+import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
 import dynamicContractImports from "@ignored/imports-plugin";
 
 const baseCompilerSettings = {
@@ -19,6 +20,7 @@ export default defineConfig({
     hardhatViem,
     hardhatIgnitionViem,
     hardhatVerify,
+    hardhatKeystore,
   ],
   solidity: {
     // LimitOrderProtocol is a heavy external contract the tests deploy. Build

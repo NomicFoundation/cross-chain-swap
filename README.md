@@ -64,7 +64,7 @@ This project uses [Hardhat](https://hardhat.org) as the primary toolchain: compi
 
   CI pins Foundry to `v1.5.1`. `foundryup` with no arguments installs the current stable release instead, which is usually fine — but if a CI result will not reproduce locally, match the pin with `foundryup --install v1.5.1`.
 
-  Every `forge` command needs the generated deployer shims in `dynamic-imports/` to exist first. The wrapped yarn scripts populate them for you; if you invoke `forge` directly, run `yarn deployers:foundry` once beforehand.
+  Every `forge` command needs the Foundry deployer shims in `dynamic-imports/`. The wrapped yarn scripts populate them for you; if you invoke `forge` directly, run `yarn deployers:foundry` beforehand. Every Hardhat compile replaces the contents of `dynamic-imports/` with Hardhat's own shims, so `yarn deployers:foundry` has to be run again after any Hardhat command.
 
 ### Build
 
