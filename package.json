@@ -50,7 +50,7 @@
     "deploy:erc20true": "hardhat run deploy/deploy-erc20-true.ts",
     "deploy:zksync": "yarn deployers:foundry && ./deploy/deploy-zksync.sh",
     "deployers:foundry": "mkdir -p dynamic-imports && cp -R foundry-deployers/. dynamic-imports/",
-    "doc": "forge doc --build --out documentation",
+    "doc": "yarn deployers:foundry && forge doc --build --out documentation",
     "gasreport": "yarn deployers:foundry && FOUNDRY_PROFILE=default forge test -vvv --gas-report",
     "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" \"test/**/*.sol\" \"deploy/**/*.sol\" \"examples/**/*.sol\"",
     "lint:fix": "solhint --max-warnings 0 \"contracts/**/*.sol\" \"test/**/*.sol\" --fix",
