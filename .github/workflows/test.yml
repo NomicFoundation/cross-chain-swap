@@ -45,7 +45,7 @@ jobs:
         run: yarn typecheck
 
   forge-build:
-    # Deployments, the examples and the lite profile still run through stock
+    # The examples, the lite profile and the zkSync flows still run through stock
     # Foundry; this job guards that build against remapping or shim breakage.
     runs-on: ubuntu-latest
     steps:

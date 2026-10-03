@@ -81,14 +81,17 @@ In the suggestion, describe the current behaviour, the behaviour you want instea
    yarn build
   ```
 3. Make the change, with tests that fail before it and pass after.
-4. Run all three of these before committing:
+4. Run all four of these before committing:
   ```bash
    yarn test       # the full suite, fuzz tests included; must pass
    yarn snapshot   # refreshes .gas-snapshot; commit the diff if there is one
    yarn lint       # solhint, --max-warnings 0
+   yarn typecheck  # the deploy scripts and the Hardhat config; needs a build first
   ```
    `yarn test` and `yarn snapshot` are not the same command and neither substitutes for the other. `yarn snapshot` is `hardhat test solidity --snapshot --grep-exclude testFuzz`: it skips every fuzz test, and it writes gas costs to the tracked `.gas-snapshot` file. CI runs both — the `test` job fails on a broken fuzz test, and the `snapshot` job fails on a stale `.gas-snapshot`, so running only one of them locally leaves the other to be caught in CI. [The README](README.md#test) explains the difference in full.
 5. Push and open a pull request against `master`, filling in the template.
+
+None of these steps needs a secret: building, testing, linting and typechecking run without an RPC URL or a key. Deploy secrets live in the Hardhat keystore or the environment, as [the README](README.md#deploy) describes, and never in the repository.
 
 The pull request must either link the issue that describes the bug or feature, or carry a detailed description of what changes and why — enough that a reviewer who has not followed the work can still judge it. Keep it to one concern: two unrelated fixes are two pull requests, and reviewing them together takes longer than reviewing them apart.
 

@@ -10,9 +10,9 @@ Guidance for coding agents working in this repository.
 
 This project uses Hardhat 3 (`hardhat.config.ts`) as the primary toolchain — compile, Solidity tests, coverage, and the gas snapshot — with solc pinned to 0.8.23. EVM deployments run through Hardhat Ignition (`yarn deploy` for the factory, `yarn deploy:erc20true` for the access token stub). Foundry (`foundry.toml`, release pinned to `v1.5.1` in `.github/workflows/test.yml`) still drives the zkSync deployment script, the `examples/` interaction scripts, the `lite` profile, and the zkSync build/test flow.
 
-Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`: the 1inch packages and forge-std are git dependencies pinned to the same SHAs the old `lib/` submodules used, and `@openzeppelin/contracts` is pinned to 5.3.0, whose production import closure matches the old pin. The production build inputs are therefore unchanged from the submodule era — runtime bytecode of `EscrowFactory`, `EscrowSrc` and `EscrowDst` is byte-identical apart from the metadata trailer. Do not loosen these pins to registry ranges without re-checking that equivalence.
+Solidity dependencies come from npm and git at the exact revisions recorded in `yarn.lock`: the 1inch packages and forge-std are git dependencies pinned to the same SHAs the old `lib/` submodules used, and `@openzeppelin/contracts` is pinned to 5.3.0, whose production import closure matches the old pin except for the pragma lines of `IERC20.sol`, `IERC20Metadata.sol` and `IERC20Permit.sol`. The production build inputs therefore differ from the submodule era only in those pragma lines, which do not reach the bytecode — runtime bytecode of `EscrowFactory`, `EscrowSrc` and `EscrowDst` is byte-identical apart from the metadata trailer. Do not loosen these pins to registry ranges without re-checking that equivalence.
 
-Every `forge` invocation (build, test, script) first needs the gitignored `dynamic-imports/` deployer shims populated with `yarn deployers:foundry`; the wrapped yarn scripts run it themselves. Any Hardhat command that compiles rewrites that directory with Hardhat's own shims, so re-run it before invoking `forge` directly again.
+Every `forge` invocation (build, test, script) first needs the gitignored `dynamic-imports/` deployer shims populated with `yarn deployers:foundry`; the wrapped yarn scripts run it themselves. Any Hardhat command that builds the contracts rewrites that directory with Hardhat's own shims, so re-run it before invoking `forge` directly again. A `--no-compile` run skips that build and leaves whichever shims are there.
 
 ### Build and test
 
@@ -21,10 +21,11 @@ yarn            # installs dependencies; postinstall applies patch-package
 yarn build      # hardhat compile
 yarn test       # the full suite under Hardhat, fuzz included, and what CI runs
 yarn lint       # solhint with --max-warnings 0
-yarn deployers:foundry && forge build   # the stock-Foundry build the examples and zkSync flows use
+yarn typecheck  # tsc over the config, deploy scripts and Ignition modules; needs a build first
+yarn deployers:foundry && forge build   # contracts/ and test/ under stock Foundry; not the scripts in examples/ or deploy/
 ```
 
-`yarn snapshot` is not `yarn test`. It runs `hardhat test solidity --snapshot --grep-exclude testFuzz`, which rewrites `.gas-snapshot` and skips the fuzz tests. Run `yarn test` before pushing: CI runs the full suite including `testFuzz_*`, plus `yarn snapshot:check` and a stock-Foundry `forge build`, so a stale snapshot, a failing fuzz test, or a broken Foundry build surfaces there rather than locally.
+`yarn snapshot` is not `yarn test`. It runs `hardhat test solidity --snapshot --grep-exclude testFuzz`, which rewrites `.gas-snapshot` and skips the fuzz tests. Run `yarn test` before pushing: CI runs the full suite including `testFuzz_*`, plus `yarn typecheck`, `yarn snapshot:check` and a stock-Foundry `forge build`, so a stale snapshot, a failing fuzz test, a type error in the deploy scripts, or a broken Foundry build surfaces there rather than locally.
 
 Prefer the repository's own `package.json` scripts over inventing parallel commands. `yarn run` lists them.
 
@@ -115,4 +116,4 @@ Scripts under `examples/` are **example / demo scripts**, not repository tooling
 
 ### Secrets
 
-The Hardhat deploy path reads `MAINNET_RPC_URL`, `DEPLOYER_PRIVATE_KEY` and `ETHERSCAN_API_KEY` as Hardhat configuration variables: an environment variable of the same name wins when set, otherwise the value comes from the encrypted keystore of the `hardhat-keystore` plugin (`npx hardhat keystore set <NAME>`; the password is prompted when the value is used). Hardhat does not read `.env`. The zkSync deploy script and the demo runs under `examples/` still read private keys and RPC URLs from `.env`, which is gitignored. `examples/config/config.json` is checked in and must stay free of keys — the `deployer` and `maker` values in it are the well-known public Anvil test accounts.
+The Hardhat deploy path reads `MAINNET_RPC_URL`, `DEPLOYER_PRIVATE_KEY` and `ETHERSCAN_API_KEY` as Hardhat configuration variables: an environment variable of the same name wins when set, otherwise the value comes from the encrypted keystore of the `hardhat-keystore` plugin (`npx hardhat keystore set <NAME>`; the password is prompted when the value is used). A value in the passwordless development keystore (`--dev`) wins over the production keystore, and when `CI` is set to any value, `false` included, the keystore is skipped entirely. Hardhat does not read `.env`. The zkSync deploy script and the demo runs under `examples/` still read private keys and RPC URLs from `.env`, which is gitignored. `examples/config/config.json` is checked in and must stay free of keys — the `deployer` and `maker` values in it are the well-known public Anvil test accounts.
