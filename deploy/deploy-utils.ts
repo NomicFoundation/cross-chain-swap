@@ -61,10 +61,14 @@ export class MissingChainConfigError extends Error {
 // deploy/config.json is single-chain: it holds one set of addresses and salts
 // (mainnet's by default), with no chain id keying. Deploying to another
 // network means editing that file — same contract as the forge scripts.
+// The file is resolved next to this module, so the working directory doesn't
+// matter.
 export function readChainConfig(chainId: string): ChainConfig {
   let raw;
   try {
-    raw = JSON.parse(readFileSync("deploy/config.json", "utf8"));
+    raw = JSON.parse(
+      readFileSync(new URL("config.json", import.meta.url), "utf8")
+    );
   } catch {
     throw new MissingChainConfigError(chainId);
   }
