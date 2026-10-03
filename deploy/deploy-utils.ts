@@ -4,22 +4,49 @@ import type { Hex } from "viem";
 import { readFileSync } from "node:fs";
 import { isAddress, isHex, keccak256, toBytes } from "viem";
 
+// The values come straight from JSON.parse, so nothing about their types is
+// known until the deploy scripts check them.
 export interface ChainConfig {
-  lop: Hex;
-  accessToken: Hex;
-  create3Deployer: Hex;
-  factoryOwner: Hex;
-  factorySalt: string;
-  trueTokenSalt: string;
+  lop: unknown;
+  accessToken: unknown;
+  create3Deployer: unknown;
+  factoryOwner: unknown;
+  factorySalt: unknown;
+  trueTokenSalt: unknown;
 }
 
-export function parseSalt(saltString: string): Hex {
-  return isHex(saltString) ? saltString : keccak256(toBytes(saltString));
+/**
+ * A hex salt must be exactly 32 bytes and is used as-is; any other string is
+ * hashed with keccak256.
+ */
+export function parseSalt(key: string, salt: unknown): Hex {
+  if (typeof salt !== "string") {
+    throw new InvalidChainConfigError(key, salt, "a string");
+  }
+  if (!isHex(salt)) {
+    return keccak256(toBytes(salt));
+  }
+  if (salt.length !== 66) {
+    throw new InvalidChainConfigError(
+      key,
+      salt,
+      "32 bytes of hex, or text to hash"
+    );
+  }
+  return salt;
 }
 
 /** True when `value` is a valid, non-zero address. */
-export function isSetAddress(value: string | undefined): value is Hex {
-  return value !== undefined && isAddress(value) && BigInt(value) !== 0n;
+export function isSetAddress(value: unknown): value is Hex {
+  return typeof value === "string" && isAddress(value) && BigInt(value) !== 0n;
+}
+
+export class InvalidChainConfigError extends Error {
+  constructor(key: string, value: unknown, expected: string) {
+    super(
+      `Invalid ${key} in deploy/config.json: expected ${expected}, got ${JSON.stringify(value)}`
+    );
+  }
 }
 
 export class MissingChainConfigError extends Error {
@@ -39,6 +66,9 @@ export function readChainConfig(chainId: string): ChainConfig {
   try {
     raw = JSON.parse(readFileSync("deploy/config.json", "utf8"));
   } catch {
+    throw new MissingChainConfigError(chainId);
+  }
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new MissingChainConfigError(chainId);
   }
 

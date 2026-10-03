@@ -1,9 +1,10 @@
-import { concat, encodeAbiParameters } from "viem";
+import { concat, encodeAbiParameters, zeroAddress } from "viem";
 import hre from "hardhat";
 
 import EscrowFactoryModule from "../ignition/modules/EscrowFactory.js";
 import ImmutablesLibModule from "../ignition/modules/ImmutablesLib.js";
 import {
+  InvalidChainConfigError,
   isSetAddress,
   linkLibraries,
   MissingChainConfigError,
@@ -32,7 +33,18 @@ async function main(): Promise<void> {
   }
 
   // Owner falls back to the DEPLOYER_ADDRESS env var when the configured value
-  // is missing or the zero address (matches script/utils/Config.sol).
+  // is missing or the zero address. Any other value must be a valid address.
+  if (
+    factoryOwner !== undefined &&
+    factoryOwner !== zeroAddress &&
+    !isSetAddress(factoryOwner)
+  ) {
+    throw new InvalidChainConfigError(
+      "factoryOwner",
+      factoryOwner,
+      "a checksummed address"
+    );
+  }
   const owner = isSetAddress(factoryOwner)
     ? factoryOwner
     : process.env.DEPLOYER_ADDRESS;
@@ -42,7 +54,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const salt = parseSalt(factorySalt);
+  const salt = parseSalt("factorySalt", factorySalt);
 
   // Deploy ImmutablesLib first, since EscrowFactory depends on it
   const { immutablesLib } = await ignition.deploy(ImmutablesLibModule);

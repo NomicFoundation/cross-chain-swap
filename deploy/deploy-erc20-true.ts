@@ -20,7 +20,7 @@ async function main(): Promise<void> {
     throw new MissingChainConfigError(chainId);
   }
 
-  const salt = parseSalt(trueTokenSalt);
+  const salt = parseSalt("trueTokenSalt", trueTokenSalt);
 
   const { bytecode: initCode } = await hre.artifacts.readArtifact("ERC20True");
 
